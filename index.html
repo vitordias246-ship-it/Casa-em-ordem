@@ -114,7 +114,29 @@
       <h2>Cardápio da semana</h2><p class="vazio">Em breve.</p>
     </section>
     <section id="panel-tarefas" class="panel hidden">
-      <h2>Tarefas da semana</h2><p class="vazio">Em breve.</p>
+      <div class="panel-topo">
+        <h2>Tarefas da semana</h2>
+        <button id="tarefa-nova" class="primary small" type="button">+ Tarefa</button>
+      </div>
+
+      <form id="form-tarefa" class="card hidden">
+        <label>Tarefa
+          <input id="tarefa-titulo" type="text" required maxlength="100" placeholder="Ex.: Lavar a louça">
+        </label>
+        <label>Responsável
+          <select id="tarefa-responsavel"></select>
+        </label>
+        <fieldset class="dias-form">
+          <legend>Repetir em</legend>
+          <div id="tarefa-dias"></div>
+        </fieldset>
+        <button id="tarefa-salvar" type="submit" class="primary">Salvar tarefa</button>
+        <button id="tarefa-cancelar" type="button" class="link">Cancelar</button>
+      </form>
+
+      <div id="dias-semana" class="dias-semana"></div>
+      <p id="tarefas-resumo" class="vazio"></p>
+      <div id="tarefas-lista"></div>
     </section>
     <section id="panel-convidados" class="panel hidden">
       <h2>Convidados</h2><p class="vazio">Em breve.</p>

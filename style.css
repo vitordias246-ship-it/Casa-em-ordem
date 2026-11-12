@@ -69,3 +69,34 @@ select {
   background: var(--bg); color: var(--texto); font-size: 1.3rem; line-height: 1;
 }
 .excluir { background: none; border: 0; font-size: 1.1rem; padding: 4px; opacity: .7; }
+
+/* ---------- Tarefas ---------- */
+.dias-semana { display: flex; gap: 6px; padding: 10px 2px 0; margin-bottom: 8px; overflow-x: auto; }
+.dia {
+  position: relative; flex: 1; min-width: 44px; padding: 10px 0;
+  border: 1px solid var(--borda); background: var(--card); color: var(--texto); border-radius: 10px;
+}
+.dia.hoje { font-weight: 700; }
+.dia.ativo { background: var(--verde); border-color: var(--verde); color: #fff; }
+.dia .pend {
+  position: absolute; top: -8px; right: -4px; min-width: 18px; height: 18px; line-height: 18px;
+  background: var(--erro); color: #fff; font-size: .68rem; border-radius: 99px; text-align: center;
+}
+#tarefas-resumo { margin: 4px 0 12px; }
+.tarefa {
+  display: flex; align-items: center; gap: 12px; background: var(--card);
+  border: 1px solid var(--borda); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+}
+.check-redondo {
+  flex: none; width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--verde);
+  background: none; color: #fff; font-weight: 700; font-size: 1rem; line-height: 1;
+}
+.tarefa.feita .check-redondo { background: var(--verde); }
+.tarefa.feita .tarefa-titulo { text-decoration: line-through; color: var(--suave); }
+.tarefa-info { flex: 1; min-width: 0; }
+.tarefa-info span { display: block; overflow-wrap: anywhere; }
+.tarefa-info small { color: var(--suave); }
+.dias-form { border: 0; padding: 0; margin: 0 0 12px; }
+.dias-form legend { padding: 0; margin-bottom: 8px; font-size: .9rem; color: var(--suave); }
+.dia-check { display: inline-flex; align-items: center; margin: 0 12px 8px 0; color: var(--texto); }
+.dia-check input { display: inline; width: auto; margin: 0 4px 0 0; }

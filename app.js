@@ -10,7 +10,11 @@ if (SUPABASE_URL.includes("COLE_AQUI") || SUPABASE_KEY.includes("COLE_AQUI")) {
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
 let modoCadastro = false;
-const estado = { householdId: null, categorias: [], itens: [] };
+const estado = {
+  householdId: null, userId: null,
+  categorias: [], itens: [],
+  membros: [], tarefas: [], diaSelecionado: new Date().getDay(),
+};
 
 // ---------- utilidades ----------
 function mostrarMensagem(texto, tipo = "erro") {
@@ -61,10 +65,12 @@ async function carregarEstado() {
 
   const casa = data[0].households;
   estado.householdId = data[0].household_id;
+  estado.userId = session.user.id;
   $("house-name").textContent = casa.nome;
   $("invite-code").textContent = casa.codigo_convite;
   mostrarTela("app");
   carregarEstoque();
+  carregarTarefas();
 }
 
 // ---------- login / cadastro ----------
@@ -336,6 +342,173 @@ $("form-item").addEventListener("submit", async (ev) => {
     botao.disabled = false;
   }
 });
+
+// ============================================================
+// MÓDULO: TAREFAS DA SEMANA
+// ============================================================
+const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const DIAS_LONGO = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+// Data local no formato AAAA-MM-DD (é o formato do tipo "date" do banco)
+function dataLocal(d = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function inicioDaSemana() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());   // volta até o domingo
+  return dataLocal(d);
+}
+// "Feita" = concluída em algum dia desta semana. Na semana seguinte volta a pendente.
+function tarefaFeita(t) {
+  return !!t.concluida_em && t.concluida_em >= inicioDaSemana();
+}
+function nomeMembro(id) {
+  const m = estado.membros.find((x) => x.user_id === id);
+  return (m && m.nome_exibicao) || "Membro";
+}
+
+async function carregarTarefas() {
+  const [mem, tar] = await Promise.all([
+    db.from("household_members").select("user_id, nome_exibicao").eq("household_id", estado.householdId),
+    db.from("tarefas").select("id, titulo, dia_semana, responsavel_id, concluida_em").order("criada_em"),
+  ]);
+  if (mem.error || tar.error) return mostrarMensagem(traduzirErro(mem.error || tar.error));
+  estado.membros = mem.data;
+  estado.tarefas = tar.data;
+  preencherResponsaveis();
+  renderDias();
+  renderTarefas();
+}
+
+function preencherResponsaveis() {
+  $("tarefa-responsavel").replaceChildren(
+    el("option", { value: "" }, "Qualquer um"),
+    ...estado.membros.map((m) => el("option", { value: m.user_id }, m.nome_exibicao || "Membro"))
+  );
+}
+
+function renderDias() {
+  const hoje = new Date().getDay();
+  $("dias-semana").replaceChildren(
+    ...DIAS.map((nome, i) => {
+      const pendentes = estado.tarefas.filter((t) => t.dia_semana === i && !tarefaFeita(t)).length;
+      const classes = ["dia", i === estado.diaSelecionado ? "ativo" : "", i === hoje ? "hoje" : ""].join(" ").trim();
+      const botao = el("button", { type: "button", class: classes,
+        onclick: () => { estado.diaSelecionado = i; renderDias(); renderTarefas(); } }, nome);
+      if (pendentes > 0) botao.append(el("span", { class: "pend" }, String(pendentes)));
+      return botao;
+    })
+  );
+}
+
+function renderTarefas() {
+  const lista = $("tarefas-lista");
+  const doDia = estado.tarefas.filter((t) => t.dia_semana === estado.diaSelecionado);
+  const feitas = doDia.filter(tarefaFeita).length;
+  lista.replaceChildren();
+
+  if (doDia.length === 0) {
+    $("tarefas-resumo").textContent = DIAS_LONGO[estado.diaSelecionado];
+    lista.append(el("p", { class: "vazio" }, "Nenhuma tarefa neste dia. Toque em “+ Tarefa” para criar."));
+    return;
+  }
+  $("tarefas-resumo").textContent = `${DIAS_LONGO[estado.diaSelecionado]} — ${feitas} de ${doDia.length} feitas`;
+  // pendentes primeiro, feitas no fim
+  const ordenadas = [...doDia].sort((a, b) => Number(tarefaFeita(a)) - Number(tarefaFeita(b)));
+  for (const t of ordenadas) lista.append(cartaoTarefa(t));
+}
+
+function cartaoTarefa(t) {
+  const feita = tarefaFeita(t);
+  return el("div", { class: feita ? "tarefa feita" : "tarefa" },
+    el("button", { type: "button", class: "check-redondo",
+      "aria-label": feita ? "Marcar como pendente" : "Marcar como feita",
+      onclick: () => alternarTarefa(t.id) }, feita ? "✓" : ""),
+    el("div", { class: "tarefa-info" },
+      el("span", { class: "tarefa-titulo" }, t.titulo),
+      el("small", {}, t.responsavel_id ? "👤 " + nomeMembro(t.responsavel_id) : "👥 Qualquer um")),
+    el("button", { type: "button", class: "excluir", "aria-label": "Excluir tarefa",
+      onclick: () => excluirTarefa(t.id) }, "🗑"));
+}
+
+async function alternarTarefa(id) {
+  const t = estado.tarefas.find((x) => x.id === id);
+  if (!t) return;
+  const anterior = t.concluida_em;
+  t.concluida_em = tarefaFeita(t) ? null : dataLocal();
+  renderDias();
+  renderTarefas();
+
+  const { error } = await db.from("tarefas")
+    .update({ concluida_em: t.concluida_em, concluida: !!t.concluida_em })
+    .eq("id", id);
+  if (error) {
+    t.concluida_em = anterior;
+    renderDias();
+    renderTarefas();
+    mostrarMensagem(traduzirErro(error));
+  }
+}
+
+async function excluirTarefa(id) {
+  const t = estado.tarefas.find((x) => x.id === id);
+  if (!t || !confirm(`Excluir "${t.titulo}" de ${DIAS_LONGO[t.dia_semana]}?`)) return;
+  const { error } = await db.from("tarefas").delete().eq("id", id);
+  if (error) return mostrarMensagem(traduzirErro(error));
+  estado.tarefas = estado.tarefas.filter((x) => x.id !== id);
+  renderDias();
+  renderTarefas();
+}
+
+// ----- formulário -----
+function montarDiasDoForm() {
+  $("tarefa-dias").replaceChildren(
+    ...DIAS.map((nome, i) =>
+      el("label", { class: "dia-check" }, el("input", { type: "checkbox", value: String(i) }), el("span", {}, nome)))
+  );
+}
+function fecharFormTarefa() {
+  $("form-tarefa").reset();
+  $("form-tarefa").classList.add("hidden");
+}
+
+$("tarefa-nova").addEventListener("click", () => {
+  const form = $("form-tarefa");
+  form.classList.toggle("hidden");
+  if (form.classList.contains("hidden")) return;
+  // já marca o dia que está selecionado na tela
+  document.querySelectorAll("#tarefa-dias input").forEach((c) => {
+    c.checked = Number(c.value) === estado.diaSelecionado;
+  });
+  $("tarefa-titulo").focus();
+});
+$("tarefa-cancelar").addEventListener("click", fecharFormTarefa);
+
+$("form-tarefa").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const dias = [...document.querySelectorAll("#tarefa-dias input:checked")].map((c) => Number(c.value));
+  if (dias.length === 0) return mostrarMensagem("Escolha pelo menos um dia.");
+
+  const botao = $("tarefa-salvar");
+  botao.disabled = true;
+  try {
+    const titulo = $("tarefa-titulo").value.trim();
+    const responsavel = $("tarefa-responsavel").value || null;
+    // uma linha por dia escolhido (ex.: "Lavar louça" de segunda a sexta = 5 linhas)
+    const linhas = dias.map((d) => ({
+      household_id: estado.householdId, titulo, dia_semana: d, responsavel_id: responsavel,
+    }));
+    const { error } = await db.from("tarefas").insert(linhas);
+    if (error) return mostrarMensagem(traduzirErro(error));
+    fecharFormTarefa();
+    await carregarTarefas();
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+montarDiasDoForm();
 
 // ---------- início ----------
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
