@@ -14,6 +14,7 @@ const estado = {
   householdId: null, userId: null,
   categorias: [], itens: [],
   membros: [], tarefas: [], diaSelecionado: new Date().getDay(),
+  refeicoes: {}, semanaOffset: 0, diaCardapio: new Date().getDay(), editando: null,
 };
 
 // ---------- utilidades ----------
@@ -71,6 +72,7 @@ async function carregarEstado() {
   mostrarTela("app");
   carregarEstoque();
   carregarTarefas();
+  carregarCardapio();
 }
 
 // ---------- login / cadastro ----------
@@ -509,6 +511,165 @@ $("form-tarefa").addEventListener("submit", async (ev) => {
 });
 
 montarDiasDoForm();
+
+// ============================================================
+// MÓDULO: CARDÁPIO DA SEMANA
+// ============================================================
+const REFEICOES = [
+  { tipo: "cafe",   nome: "Café da manhã", emoji: "☕" },
+  { tipo: "almoco", nome: "Almoço",        emoji: "🍛" },
+  { tipo: "lanche", nome: "Lanche",        emoji: "🥪" },
+  { tipo: "jantar", nome: "Jantar",        emoji: "🍝" },
+];
+
+const chaveRef = (data, tipo) => `${data}|${tipo}`;
+
+// As 7 datas (domingo a sábado) da semana mostrada; semanaOffset 0 = esta semana
+function datasDaSemana() {
+  const base = new Date();
+  base.setHours(12, 0, 0, 0);   // meio-dia evita problemas de virada de horário
+  base.setDate(base.getDate() - base.getDay() + estado.semanaOffset * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    return d;
+  });
+}
+const ddmm = (d) => `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+async function carregarCardapio() {
+  const dias = datasDaSemana();
+  const { data, error } = await db.from("refeicoes")
+    .select("id, data, tipo, descricao")
+    .gte("data", dataLocal(dias[0]))
+    .lte("data", dataLocal(dias[6]));
+  if (error) return mostrarMensagem(traduzirErro(error));
+
+  estado.refeicoes = {};
+  for (const r of data) estado.refeicoes[chaveRef(r.data, r.tipo)] = r;
+  estado.editando = null;
+  renderCardapio();
+}
+
+function renderCardapio() {
+  const dias = datasDaSemana();
+  const hoje = dataLocal();
+
+  $("cardapio-hoje").textContent =
+    (estado.semanaOffset === 0 ? "Esta semana · " : "") + `${ddmm(dias[0])} a ${ddmm(dias[6])}`;
+
+  $("cardapio-dias").replaceChildren(
+    ...dias.map((d, i) => {
+      const ds = dataLocal(d);
+      const planejadas = REFEICOES.filter((r) => estado.refeicoes[chaveRef(ds, r.tipo)]).length;
+      const classes = ["dia", i === estado.diaCardapio ? "ativo" : "", ds === hoje ? "hoje" : ""].join(" ").trim();
+      const botao = el("button", { type: "button", class: classes,
+        onclick: () => { estado.diaCardapio = i; estado.editando = null; renderCardapio(); } },
+        DIAS[i], el("span", { class: "dia-num" }, String(d.getDate())));
+      if (planejadas > 0) botao.append(el("span", { class: "plan" }, String(planejadas)));
+      return botao;
+    })
+  );
+
+  const dataStr = dataLocal(dias[estado.diaCardapio]);
+  $("cardapio-lista").replaceChildren(
+    ...REFEICOES.map((ref) => cartaoRefeicao(ref, dataStr))
+  );
+}
+
+function cartaoRefeicao(ref, dataStr) {
+  const r = estado.refeicoes[chaveRef(dataStr, ref.tipo)];
+  if (estado.editando === ref.tipo) return formRefeicao(ref, dataStr, r);
+
+  return el("button", { type: "button", class: r ? "refeicao" : "refeicao vazia",
+    onclick: () => { estado.editando = ref.tipo; renderCardapio(); } },
+    el("span", { class: "ref-emoji" }, ref.emoji),
+    el("span", { class: "ref-texto" },
+      el("small", {}, ref.nome),
+      el("strong", {}, r ? r.descricao : "Toque para adicionar")));
+}
+
+function formRefeicao(ref, dataStr, r) {
+  const input = el("input", { type: "text", maxlength: "200",
+    placeholder: "Ex.: Arroz, feijão e frango", value: r ? r.descricao : "" });
+  const form = el("form", { class: "card refeicao-form",
+    onsubmit: (ev) => { ev.preventDefault(); salvarRefeicao(dataStr, ref.tipo, input.value); } },
+    el("label", {}, `${ref.emoji} ${ref.nome}`, input),
+    el("button", { type: "submit", class: "primary" }, "Salvar"),
+    r ? el("button", { type: "button", class: "link", onclick: () => removerRefeicao(r) }, "Remover refeição") : "",
+    el("button", { type: "button", class: "link",
+      onclick: () => { estado.editando = null; renderCardapio(); } }, "Cancelar"));
+  setTimeout(() => input.focus(), 0);
+  return form;
+}
+
+async function salvarRefeicao(dataStr, tipo, texto) {
+  const descricao = texto.trim();
+  const atual = estado.refeicoes[chaveRef(dataStr, tipo)];
+
+  if (!descricao) {                       // campo vazio = limpar a refeição
+    if (atual) return removerRefeicao(atual);
+    estado.editando = null;
+    return renderCardapio();
+  }
+
+  // upsert = "insere, ou atualiza se já existir" (a chave única é casa + data + tipo)
+  const { data, error } = await db.from("refeicoes")
+    .upsert({ household_id: estado.householdId, data: dataStr, tipo, descricao },
+            { onConflict: "household_id,data,tipo" })
+    .select("id, data, tipo, descricao").single();
+  if (error) return mostrarMensagem(traduzirErro(error));
+
+  estado.refeicoes[chaveRef(dataStr, tipo)] = data;
+  estado.editando = null;
+  renderCardapio();
+}
+
+async function removerRefeicao(r) {
+  const { error } = await db.from("refeicoes").delete().eq("id", r.id);
+  if (error) return mostrarMensagem(traduzirErro(error));
+  delete estado.refeicoes[chaveRef(r.data, r.tipo)];
+  estado.editando = null;
+  renderCardapio();
+}
+
+// Copia a semana anterior só para os espaços que estão vazios nesta semana
+async function copiarSemanaAnterior() {
+  if (!confirm("Copiar o cardápio da semana anterior para os espaços vazios desta semana?")) return;
+  const dias = datasDaSemana();
+  const anteriores = dias.map((d) => { const x = new Date(d); x.setDate(x.getDate() - 7); return dataLocal(x); });
+
+  const { data, error } = await db.from("refeicoes")
+    .select("data, tipo, descricao")
+    .gte("data", anteriores[0]).lte("data", anteriores[6]);
+  if (error) return mostrarMensagem(traduzirErro(error));
+
+  const linhas = data
+    .map((r) => ({ i: anteriores.indexOf(r.data), r }))
+    .filter(({ i }) => i >= 0)
+    .map(({ i, r }) => ({ household_id: estado.householdId, data: dataLocal(dias[i]), tipo: r.tipo, descricao: r.descricao }))
+    .filter((l) => !estado.refeicoes[chaveRef(l.data, l.tipo)]);
+
+  if (linhas.length === 0) {
+    return mostrarMensagem("Nada para copiar: a semana anterior está vazia ou esta já está preenchida.", "ok");
+  }
+  const { error: erro2 } = await db.from("refeicoes")
+    .upsert(linhas, { onConflict: "household_id,data,tipo", ignoreDuplicates: true });
+  if (erro2) return mostrarMensagem(traduzirErro(erro2));
+
+  await carregarCardapio();
+  mostrarMensagem(`${linhas.length} refeição(ões) copiada(s).`, "ok");
+}
+
+function mudarSemana(delta) {
+  estado.semanaOffset = delta === 0 ? 0 : estado.semanaOffset + delta;
+  if (delta === 0) estado.diaCardapio = new Date().getDay();
+  carregarCardapio();
+}
+$("cardapio-ant").addEventListener("click", () => mudarSemana(-1));
+$("cardapio-prox").addEventListener("click", () => mudarSemana(+1));
+$("cardapio-hoje").addEventListener("click", () => mudarSemana(0));
+$("cardapio-copiar").addEventListener("click", copiarSemanaAnterior);
 
 // ---------- início ----------
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");

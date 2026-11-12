@@ -111,7 +111,17 @@
       <div id="estoque-lista"></div>
     </section>
     <section id="panel-cardapio" class="panel hidden">
-      <h2>Cardápio da semana</h2><p class="vazio">Em breve.</p>
+      <div class="panel-topo">
+        <h2>Cardápio da semana</h2>
+        <button id="cardapio-copiar" class="chip" type="button">Copiar semana anterior</button>
+      </div>
+      <div class="semana-nav">
+        <button id="cardapio-ant" class="nav-btn" type="button" aria-label="Semana anterior">‹</button>
+        <button id="cardapio-hoje" class="semana-label" type="button" title="Voltar para esta semana"></button>
+        <button id="cardapio-prox" class="nav-btn" type="button" aria-label="Próxima semana">›</button>
+      </div>
+      <div id="cardapio-dias" class="dias-semana"></div>
+      <div id="cardapio-lista"></div>
     </section>
     <section id="panel-tarefas" class="panel hidden">
       <div class="panel-topo">
