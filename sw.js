@@ -1,6 +1,6 @@
 // Service worker simples: tenta a rede primeiro e usa o cache se estiver offline.
 // Não interfere nas chamadas ao Supabase (outro domínio).
-const CACHE = "casa-em-ordem-v1";
+const CACHE = "casa-em-ordem-v2";
 const ARQUIVOS = ["./", "./index.html", "./style.css", "./app.js", "./config.js", "./manifest.json"];
 
 self.addEventListener("install", (e) => {
@@ -20,7 +20,7 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: "no-cache" })
       .then((res) => {
         const copia = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copia));

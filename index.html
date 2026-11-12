@@ -67,7 +67,48 @@
     </header>
 
     <section id="panel-estoque" class="panel">
-      <h2>Estoque</h2><p class="vazio">Em breve: produtos da casa.</p>
+      <div class="panel-topo">
+        <h2>Estoque</h2>
+        <button id="estoque-novo" class="primary small" type="button">+ Produto</button>
+      </div>
+
+      <form id="form-item" class="card hidden">
+        <label>Produto
+          <input id="item-nome" type="text" required maxlength="80" placeholder="Ex.: Sabão em pó">
+        </label>
+        <label>Categoria
+          <select id="item-categoria"></select>
+        </label>
+        <label id="label-nova-cat" class="hidden">Nome da nova categoria
+          <input id="item-nova-categoria" type="text" maxlength="40">
+        </label>
+        <div class="linha">
+          <label>Quantidade
+            <input id="item-qtd" type="number" inputmode="decimal" min="0" step="any" value="1" required>
+          </label>
+          <label>Unidade
+            <select id="item-unidade">
+              <option value="un">un</option>
+              <option value="pct">pacote</option>
+              <option value="cx">caixa</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="L">L</option>
+              <option value="ml">ml</option>
+            </select>
+          </label>
+          <label>Avisar quando ≤
+            <input id="item-min" type="number" inputmode="decimal" min="0" step="any" value="1" required>
+          </label>
+        </div>
+        <button id="item-salvar" type="submit" class="primary">Salvar produto</button>
+        <button id="item-cancelar" type="button" class="link">Cancelar</button>
+      </form>
+
+      <label class="check">
+        <input type="checkbox" id="so-acabando"> Mostrar só o que está acabando
+      </label>
+      <div id="estoque-lista"></div>
     </section>
     <section id="panel-cardapio" class="panel hidden">
       <h2>Cardápio da semana</h2><p class="vazio">Em breve.</p>

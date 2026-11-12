@@ -40,3 +40,32 @@ header .link { width: auto; padding: 6px 0; }
 .tabs button { flex: 1; background: none; border: 0; padding: 10px 4px; font-size: 1.3rem; color: var(--suave); }
 .tabs button span { display: block; font-size: .7rem; }
 .tabs button.active { color: var(--verde); font-weight: 600; }
+
+/* ---------- Estoque ---------- */
+select {
+  display: block; width: 100%; margin-top: 6px; padding: 12px; font-size: 1rem;
+  border: 1px solid var(--borda); border-radius: 10px; background: var(--bg); color: var(--texto);
+}
+.panel-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.panel-topo h2 { margin: 0; }
+.primary.small { width: auto; padding: 8px 14px; }
+.linha { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+.check { display: flex; align-items: center; margin: 8px 0 16px; }
+.check input { display: inline; width: auto; margin: 0 8px 0 0; }
+.grupo { margin: 20px 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); }
+.item {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--borda); border-radius: 12px;
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.item.acabando { border-color: var(--erro); }
+.item-info strong { display: block; }
+.item-info small { color: var(--suave); }
+.badge { display: inline-block; margin-left: 6px; background: var(--erro); color: #fff; font-size: .7rem; padding: 2px 8px; border-radius: 99px; }
+.item-ctrl { display: flex; align-items: center; gap: 8px; }
+.qtd { min-width: 56px; text-align: center; font-weight: 600; }
+.mais-menos {
+  width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--borda);
+  background: var(--bg); color: var(--texto); font-size: 1.3rem; line-height: 1;
+}
+.excluir { background: none; border: 0; font-size: 1.1rem; padding: 4px; opacity: .7; }
