@@ -129,3 +129,10 @@ select {
 .ref-texto strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .refeicao.vazia strong { font-weight: 400; }
 .refeicao-form { margin-bottom: 8px; }
+
+/* ---------- Convidados ---------- */
+.form-titulo { margin: 0 0 12px; font-size: 1.05rem; }
+.convidado .item-info small { display: block; }
+.item.passado { opacity: .65; }
+details.passados { margin-top: 16px; }
+details.passados summary { cursor: pointer; color: var(--suave); padding: 8px 0; font-size: .9rem; }

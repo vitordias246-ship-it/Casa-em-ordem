@@ -15,6 +15,7 @@ const estado = {
   categorias: [], itens: [],
   membros: [], tarefas: [], diaSelecionado: new Date().getDay(),
   refeicoes: {}, semanaOffset: 0, diaCardapio: new Date().getDay(), editando: null,
+  convidados: [], convidadoEditando: null,
 };
 
 // ---------- utilidades ----------
@@ -73,6 +74,7 @@ async function carregarEstado() {
   carregarEstoque();
   carregarTarefas();
   carregarCardapio();
+  carregarConvidados();
 }
 
 // ---------- login / cadastro ----------
@@ -670,6 +672,139 @@ $("cardapio-ant").addEventListener("click", () => mudarSemana(-1));
 $("cardapio-prox").addEventListener("click", () => mudarSemana(+1));
 $("cardapio-hoje").addEventListener("click", () => mudarSemana(0));
 $("cardapio-copiar").addEventListener("click", copiarSemanaAnterior);
+
+// ============================================================
+// MÓDULO: CONVIDADOS
+// ============================================================
+
+// "2026-11-14" (formato do banco) -> objeto Date ao meio-dia local
+function dataDe(str) {
+  const [ano, mes, dia] = str.split("-").map(Number);
+  return new Date(ano, mes - 1, dia, 12);
+}
+function diasAte(str) {
+  const hoje = new Date();
+  hoje.setHours(12, 0, 0, 0);
+  return Math.round((dataDe(str) - hoje) / 86400000);
+}
+function rotuloData(str) {
+  const n = diasAte(str);
+  const d = dataDe(str);
+  const base = `${DIAS[d.getDay()]}, ${ddmm(d)}`;
+  if (n === 0) return `${base} · hoje`;
+  if (n === 1) return `${base} · amanhã`;
+  if (n > 1) return `${base} · em ${n} dias`;
+  if (n === -1) return `${base} · ontem`;
+  return `${base} · há ${-n} dias`;
+}
+
+async function carregarConvidados() {
+  const { data, error } = await db.from("convidados")
+    .select("id, nome, data_visita, observacoes");
+  if (error) return mostrarMensagem(traduzirErro(error));
+  estado.convidados = data;
+  renderConvidados();
+}
+
+function renderConvidados() {
+  const lista = $("convidados-lista");
+  lista.replaceChildren();
+
+  if (estado.convidados.length === 0) {
+    lista.append(el("p", { class: "vazio" }, "Nenhum convidado cadastrado. Toque em “+ Convidado” para começar."));
+    return;
+  }
+
+  const proximos = estado.convidados
+    .filter((c) => c.data_visita && diasAte(c.data_visita) >= 0)
+    .sort((a, b) => a.data_visita.localeCompare(b.data_visita));
+  const semData = estado.convidados.filter((c) => !c.data_visita);
+  const passados = estado.convidados
+    .filter((c) => c.data_visita && diasAte(c.data_visita) < 0)
+    .sort((a, b) => b.data_visita.localeCompare(a.data_visita));
+
+  if (proximos.length) {
+    lista.append(el("h3", { class: "grupo" }, "Próximas visitas"), ...proximos.map((c) => cartaoConvidado(c)));
+  }
+  if (semData.length) {
+    lista.append(el("h3", { class: "grupo" }, "Sem data definida"), ...semData.map((c) => cartaoConvidado(c)));
+  }
+  if (passados.length) {
+    lista.append(el("details", { class: "passados" },
+      el("summary", {}, `Visitas anteriores (${passados.length})`),
+      ...passados.map((c) => cartaoConvidado(c))));
+  }
+}
+
+function cartaoConvidado(c) {
+  const futuro = !c.data_visita || diasAte(c.data_visita) >= 0;
+  const info = el("div", { class: "item-info" }, el("strong", {}, c.nome));
+  if (c.data_visita) info.append(el("small", {}, "📅 " + rotuloData(c.data_visita)));
+  if (c.observacoes) info.append(el("small", {}, "📝 " + c.observacoes));
+
+  return el("div", { class: "item convidado" + (futuro ? "" : " passado") },
+    info,
+    el("div", { class: "item-ctrl" },
+      el("button", { type: "button", class: "excluir", "aria-label": "Editar convidado",
+        onclick: () => abrirFormConvidado(c) }, "✏️"),
+      el("button", { type: "button", class: "excluir", "aria-label": "Excluir convidado",
+        onclick: () => excluirConvidado(c.id) }, "🗑")));
+}
+
+function abrirFormConvidado(c = null) {
+  estado.convidadoEditando = c ? c.id : null;
+  $("convidado-form-titulo").textContent = c ? "Editar convidado" : "Novo convidado";
+  $("convidado-nome").value = c ? c.nome : "";
+  $("convidado-data").value = c && c.data_visita ? c.data_visita : "";
+  $("convidado-obs").value = c && c.observacoes ? c.observacoes : "";
+  $("form-convidado").classList.remove("hidden");
+  $("form-convidado").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("convidado-nome").focus();
+}
+function fecharFormConvidado() {
+  $("form-convidado").reset();
+  $("form-convidado").classList.add("hidden");
+  estado.convidadoEditando = null;
+}
+
+async function excluirConvidado(id) {
+  const c = estado.convidados.find((x) => x.id === id);
+  if (!c || !confirm(`Excluir "${c.nome}" da lista de convidados?`)) return;
+  const { error } = await db.from("convidados").delete().eq("id", id);
+  if (error) return mostrarMensagem(traduzirErro(error));
+  estado.convidados = estado.convidados.filter((x) => x.id !== id);
+  renderConvidados();
+}
+
+$("convidado-novo").addEventListener("click", () => {
+  if ($("form-convidado").classList.contains("hidden") || estado.convidadoEditando) abrirFormConvidado();
+  else fecharFormConvidado();
+});
+$("convidado-cancelar").addEventListener("click", fecharFormConvidado);
+
+$("form-convidado").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const botao = $("convidado-salvar");
+  botao.disabled = true;
+  try {
+    const campos = {
+      nome: $("convidado-nome").value.trim(),
+      data_visita: $("convidado-data").value || null,
+      observacoes: $("convidado-obs").value.trim() || null,
+    };
+    if (!campos.nome) return mostrarMensagem("Digite o nome do convidado.");
+
+    const { error } = estado.convidadoEditando
+      ? await db.from("convidados").update(campos).eq("id", estado.convidadoEditando)
+      : await db.from("convidados").insert({ household_id: estado.householdId, ...campos });
+    if (error) return mostrarMensagem(traduzirErro(error));
+
+    fecharFormConvidado();
+    await carregarConvidados();
+  } finally {
+    botao.disabled = false;
+  }
+});
 
 // ---------- início ----------
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");

@@ -149,7 +149,27 @@
       <div id="tarefas-lista"></div>
     </section>
     <section id="panel-convidados" class="panel hidden">
-      <h2>Convidados</h2><p class="vazio">Em breve.</p>
+      <div class="panel-topo">
+        <h2>Convidados</h2>
+        <button id="convidado-novo" class="primary small" type="button">+ Convidado</button>
+      </div>
+
+      <form id="form-convidado" class="card hidden">
+        <h3 id="convidado-form-titulo" class="form-titulo">Novo convidado</h3>
+        <label>Nome
+          <input id="convidado-nome" type="text" required maxlength="80" placeholder="Ex.: Tia Marta">
+        </label>
+        <label>Data da visita (opcional)
+          <input id="convidado-data" type="date">
+        </label>
+        <label>Observações (opcional)
+          <input id="convidado-obs" type="text" maxlength="200" placeholder="Ex.: não come carne, chega às 19h">
+        </label>
+        <button id="convidado-salvar" type="submit" class="primary">Salvar</button>
+        <button id="convidado-cancelar" type="button" class="link">Cancelar</button>
+      </form>
+
+      <div id="convidados-lista"></div>
     </section>
 
     <nav class="tabs">
