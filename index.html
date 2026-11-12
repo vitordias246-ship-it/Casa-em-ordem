@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2f6f4f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Casa em Ordem">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  <title>Casa em Ordem</title>
+</head>
+<body>
+  <div id="msg" class="msg hidden" role="alert"></div>
+
+  <!-- TELA 1: LOGIN / CADASTRO -->
+  <main id="view-auth" class="view hidden">
+    <h1>🏠 Casa em Ordem</h1>
+    <p class="sub">Organize a casa em família.</p>
+    <form id="auth-form" class="card">
+      <h2 id="auth-titulo">Entrar</h2>
+      <label id="label-nome" class="hidden">Seu nome
+        <input id="nome" type="text" autocomplete="name">
+      </label>
+      <label>E-mail
+        <input id="email" type="email" required autocomplete="email">
+      </label>
+      <label>Senha
+        <input id="senha" type="password" required minlength="6" autocomplete="current-password">
+      </label>
+      <button id="auth-botao" type="submit" class="primary">Entrar</button>
+      <button id="auth-alternar" type="button" class="link">Não tem conta? Cadastre-se</button>
+    </form>
+  </main>
+
+  <!-- TELA 2: CRIAR CASA OU ENTRAR POR CÓDIGO -->
+  <main id="view-house" class="view hidden">
+    <h1>Sua casa</h1>
+    <p class="sub">Crie uma casa nova ou entre em uma com o código de convite.</p>
+    <form id="form-criar" class="card">
+      <h2>Criar uma casa</h2>
+      <label>Nome da casa
+        <input id="casa-nome" type="text" required placeholder="Ex.: Casa dos Dias">
+      </label>
+      <button type="submit" class="primary">Criar casa</button>
+    </form>
+    <form id="form-entrar" class="card">
+      <h2>Entrar com código</h2>
+      <label>Código de convite
+        <input id="casa-codigo" type="text" required maxlength="6" placeholder="Ex.: A1B2C3" autocapitalize="characters">
+      </label>
+      <button type="submit" class="primary">Entrar na casa</button>
+    </form>
+    <button id="sair-1" class="link" type="button">Sair da conta</button>
+  </main>
+
+  <!-- TELA 3: APP PRINCIPAL -->
+  <div id="view-app" class="view hidden">
+    <header>
+      <div>
+        <strong id="house-name"></strong>
+        <button id="copiar-codigo" class="chip" type="button">Código: <span id="invite-code"></span></button>
+      </div>
+      <button id="sair-2" class="link" type="button">Sair</button>
+    </header>
+
+    <section id="panel-estoque" class="panel">
+      <h2>Estoque</h2><p class="vazio">Em breve: produtos da casa.</p>
+    </section>
+    <section id="panel-cardapio" class="panel hidden">
+      <h2>Cardápio da semana</h2><p class="vazio">Em breve.</p>
+    </section>
+    <section id="panel-tarefas" class="panel hidden">
+      <h2>Tarefas da semana</h2><p class="vazio">Em breve.</p>
+    </section>
+    <section id="panel-convidados" class="panel hidden">
+      <h2>Convidados</h2><p class="vazio">Em breve.</p>
+    </section>
+
+    <nav class="tabs">
+      <button data-tab="estoque" class="active" type="button">📦<span>Estoque</span></button>
+      <button data-tab="cardapio" type="button">🍽️<span>Cardápio</span></button>
+      <button data-tab="tarefas" type="button">✅<span>Tarefas</span></button>
+      <button data-tab="convidados" type="button">👥<span>Convidados</span></button>
+    </nav>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
