@@ -1,11 +1,16 @@
-// Service worker simples: tenta a rede primeiro e usa o cache se estiver offline.
+// Service worker: rede primeiro, cache se estiver offline.
 // Não interfere nas chamadas ao Supabase (outro domínio).
-const CACHE = "casa-em-ordem-v2";
+// A versão nova NÃO assume sozinha: o app mostra "Nova versão disponível"
+// e só troca quando a pessoa toca em "Atualizar".
+const CACHE = "casa-em-ordem-v3";
 const ARQUIVOS = ["./", "./index.html", "./style.css", "./app.js", "./config.js", "./manifest.json"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ARQUIVOS)));
-  self.skipWaiting();
+});
+
+self.addEventListener("message", (e) => {
+  if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#2f6f4f">
+  <meta name="google" content="notranslate">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Casa em Ordem">
@@ -14,49 +15,94 @@
 </head>
 <body>
   <div id="msg" class="msg hidden" role="alert"></div>
+  <div id="offline-bar" class="faixa offline hidden">📡 Sem conexão — o que você alterar agora não será salvo.</div>
+  <div id="update-bar" class="faixa atualizar hidden">
+    <span>✨ Nova versão disponível</span>
+    <button id="update-btn" type="button">Atualizar</button>
+  </div>
 
-  <!-- TELA 1: LOGIN / CADASTRO -->
+  <!-- LOGIN / CADASTRO -->
   <main id="view-auth" class="view hidden">
     <h1>🏠 Casa em Ordem</h1>
     <p class="sub">Organize a casa em família.</p>
     <form id="auth-form" class="card">
       <h2 id="auth-titulo">Entrar</h2>
       <label id="label-nome" class="hidden">Seu nome
-        <input id="nome" type="text" autocomplete="name">
+        <input id="nome" type="text" autocomplete="name" maxlength="40">
       </label>
       <label>E-mail
         <input id="email" type="email" required autocomplete="email">
       </label>
       <label>Senha
-        <input id="senha" type="password" required minlength="6" autocomplete="current-password">
+        <input id="senha" type="password" required autocomplete="current-password">
       </label>
+      <p id="dica-senha" class="ajuda hidden">Use pelo menos 8 caracteres, misturando letras e números.</p>
       <button id="auth-botao" type="submit" class="primary">Entrar</button>
+      <button id="auth-esqueci" type="button" class="link">Esqueci minha senha</button>
       <button id="auth-alternar" type="button" class="link">Não tem conta? Cadastre-se</button>
     </form>
   </main>
 
-  <!-- TELA 2: CRIAR CASA OU ENTRAR POR CÓDIGO -->
+  <!-- ESQUECI A SENHA -->
+  <main id="view-esqueci" class="view hidden">
+    <h1>Recuperar senha</h1>
+    <p class="sub">Informe seu e-mail e enviaremos um link para criar uma nova senha.</p>
+    <form id="form-esqueci" class="card">
+      <label>E-mail
+        <input id="esqueci-email" type="email" required autocomplete="email">
+      </label>
+      <button id="esqueci-botao" type="submit" class="primary">Enviar link</button>
+      <button id="esqueci-voltar" type="button" class="link">Voltar</button>
+    </form>
+  </main>
+
+  <!-- NOVA SENHA (link do e-mail ou "Alterar senha") -->
+  <main id="view-reset" class="view hidden">
+    <h1>Nova senha</h1>
+    <p class="sub">Escolha uma senha nova para a sua conta.</p>
+    <form id="form-reset" class="card">
+      <label>Nova senha
+        <input id="reset-senha" type="password" required minlength="8" autocomplete="new-password">
+      </label>
+      <label>Repita a nova senha
+        <input id="reset-senha2" type="password" required minlength="8" autocomplete="new-password">
+      </label>
+      <p class="ajuda">Use pelo menos 8 caracteres, misturando letras e números.</p>
+      <button id="reset-botao" type="submit" class="primary">Salvar nova senha</button>
+      <button id="reset-cancelar" type="button" class="link">Cancelar</button>
+    </form>
+  </main>
+
+  <!-- ERRO AO CARREGAR -->
+  <main id="view-erro" class="view hidden">
+    <h1>Não consegui carregar</h1>
+    <p id="erro-texto" class="sub"></p>
+    <button id="erro-tentar" class="primary" type="button">Tentar de novo</button>
+    <button id="erro-sair" class="link" type="button">Sair da conta</button>
+  </main>
+
+  <!-- CRIAR CASA OU ENTRAR POR CÓDIGO -->
   <main id="view-house" class="view hidden">
     <h1>Sua casa</h1>
     <p class="sub">Crie uma casa nova ou entre em uma com o código de convite.</p>
     <form id="form-criar" class="card">
       <h2>Criar uma casa</h2>
       <label>Nome da casa
-        <input id="casa-nome" type="text" required placeholder="Ex.: Casa dos Dias">
+        <input id="casa-nome" type="text" required maxlength="60" placeholder="Ex.: Casa dos Dias">
       </label>
       <button type="submit" class="primary">Criar casa</button>
     </form>
     <form id="form-entrar" class="card">
       <h2>Entrar com código</h2>
       <label>Código de convite
-        <input id="casa-codigo" type="text" required maxlength="6" placeholder="Ex.: A1B2C3" autocapitalize="characters">
+        <input id="casa-codigo" type="text" required maxlength="8" placeholder="Ex.: A1B2C3D4" autocapitalize="characters">
       </label>
       <button type="submit" class="primary">Entrar na casa</button>
     </form>
     <button id="sair-1" class="link" type="button">Sair da conta</button>
   </main>
 
-  <!-- TELA 3: APP PRINCIPAL -->
+  <!-- APP PRINCIPAL -->
   <div id="view-app" class="view hidden">
     <header>
       <div>
@@ -66,6 +112,7 @@
       <button id="sair-2" class="link" type="button">Sair</button>
     </header>
 
+    <!-- ESTOQUE -->
     <section id="panel-estoque" class="panel">
       <div class="panel-topo">
         <h2>Estoque</h2>
@@ -73,6 +120,7 @@
       </div>
 
       <form id="form-item" class="card hidden">
+        <h3 id="item-form-titulo" class="form-titulo">Novo produto</h3>
         <label>Produto
           <input id="item-nome" type="text" required maxlength="80" placeholder="Ex.: Sabão em pó">
         </label>
@@ -110,6 +158,8 @@
       </label>
       <div id="estoque-lista"></div>
     </section>
+
+    <!-- CARDÁPIO -->
     <section id="panel-cardapio" class="panel hidden">
       <div class="panel-topo">
         <h2>Cardápio da semana</h2>
@@ -123,6 +173,8 @@
       <div id="cardapio-dias" class="dias-semana"></div>
       <div id="cardapio-lista"></div>
     </section>
+
+    <!-- TAREFAS -->
     <section id="panel-tarefas" class="panel hidden">
       <div class="panel-topo">
         <h2>Tarefas da semana</h2>
@@ -130,13 +182,17 @@
       </div>
 
       <form id="form-tarefa" class="card hidden">
+        <h3 id="tarefa-form-titulo" class="form-titulo">Nova tarefa</h3>
         <label>Tarefa
           <input id="tarefa-titulo" type="text" required maxlength="100" placeholder="Ex.: Lavar a louça">
         </label>
         <label>Responsável
           <select id="tarefa-responsavel"></select>
         </label>
-        <fieldset class="dias-form">
+        <label id="label-tarefa-dia" class="hidden">Dia da semana
+          <select id="tarefa-dia"></select>
+        </label>
+        <fieldset id="fieldset-dias" class="dias-form">
           <legend>Repetir em</legend>
           <div id="tarefa-dias"></div>
         </fieldset>
@@ -148,6 +204,8 @@
       <p id="tarefas-resumo" class="vazio"></p>
       <div id="tarefas-lista"></div>
     </section>
+
+    <!-- CONVIDADOS -->
     <section id="panel-convidados" class="panel hidden">
       <div class="panel-topo">
         <h2>Convidados</h2>
@@ -172,11 +230,60 @@
       <div id="convidados-lista"></div>
     </section>
 
+    <!-- CASA (perfil, membros, categorias, backup) -->
+    <section id="panel-casa" class="panel hidden">
+      <h2>Casa</h2>
+
+      <div class="card">
+        <h3 class="form-titulo">Código de convite</h3>
+        <p class="ajuda">Quem entrar com este código passa a ver tudo da casa (limite de 4 pessoas).</p>
+        <div class="codigo-linha">
+          <strong id="casa-codigo-txt" class="codigo"></strong>
+          <button id="casa-copiar" class="chip" type="button">Copiar</button>
+        </div>
+        <button id="casa-novo-codigo" class="link hidden" type="button">Gerar novo código (invalida o atual)</button>
+      </div>
+
+      <div class="card">
+        <h3 class="form-titulo">Membros (<span id="casa-qtd-membros">0</span>/4)</h3>
+        <div id="casa-membros"></div>
+      </div>
+
+      <form id="form-nome" class="card">
+        <h3 class="form-titulo">Meu nome na casa</h3>
+        <label>Nome de exibição
+          <input id="meu-nome" type="text" required maxlength="40">
+        </label>
+        <button type="submit" class="primary">Salvar nome</button>
+      </form>
+
+      <div class="card">
+        <h3 class="form-titulo">Categorias do estoque</h3>
+        <div id="casa-categorias"></div>
+        <form id="form-nova-categoria" class="cat-add">
+          <input id="nova-categoria-nome" type="text" maxlength="40" placeholder="Nova categoria" required>
+          <button type="submit" class="chip">Adicionar</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3 class="form-titulo">Conta e dados</h3>
+        <button id="btn-backup" class="sec" type="button">⬇️ Exportar backup (JSON)</button>
+        <button id="btn-senha" class="sec" type="button">🔑 Alterar minha senha</button>
+        <button id="btn-sair-casa" class="perigo" type="button">Sair desta casa</button>
+      </div>
+
+      <p class="versao">Casa em Ordem v<span id="app-versao"></span>
+        <button id="verificar-update" class="link-inline" type="button">Verificar atualização</button>
+      </p>
+    </section>
+
     <nav class="tabs">
       <button data-tab="estoque" class="active" type="button">📦<span>Estoque</span></button>
       <button data-tab="cardapio" type="button">🍽️<span>Cardápio</span></button>
       <button data-tab="tarefas" type="button">✅<span>Tarefas</span></button>
       <button data-tab="convidados" type="button">👥<span>Convidados</span></button>
+      <button data-tab="casa" type="button">⚙️<span>Casa</span></button>
     </nav>
   </div>
 
